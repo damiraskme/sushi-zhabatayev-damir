@@ -1,96 +1,74 @@
+#include <iostream>
+#include <fstream>
+#include <algorithm>
+#include <iomanip>
+#include <cstdio>
 #include "Sushi.hh"
-#include <cmath>
 
 std::string Sushi::read_line(std::istream &in)
 {
-  char buffer[Sushi::MAX_INPUT]; // DZ: MAX_INPUT+1, off by 1 error
-  in.getline(buffer, Sushi::MAX_INPUT);
-  
-   if (in.fail() && !in.eof()) {
-        in.clear();
-        in.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-	// DZ: "The excess characters (including the newline) should be discarded..."
-	// DZ: You did not truncate it, you discarded it
-        std::cerr << "Line too long, truncated." << std::endl;
-        return "";
+  std::string line;
+  if(!std::getline (in, line)) {// Has the operation failed?
+    if(!in.eof()) { 
+      std::perror("getline");
     }
-
-  std::string line(buffer);
-
-  line.erase(line.find_last_not_of(" \t\f\v\n\r") + 1);
-  line.erase(0, line.find_first_not_of(" \t\f\v\n\r"));
-
-  // DZ: Same here
-  if(line.empty()) {
-    std::cerr << "Line empty, truncated" << std::endl;
+    return "";
+  }
+    
+  // Is the line empty?
+  if(std::all_of(line.begin(), line.end(), isspace)) {
     return "";
   }
 
-  // DZ: This is not read_line's responsibility
-  store_to_history(line);
-  return line;
+  // Is the line too long?
+  if(line.size() > MAX_INPUT_SIZE) {
+    line.resize(MAX_INPUT_SIZE);
+    std::cerr << "Line too long, truncated." << std::endl;
+  }
+  
+  return line; 
 }
 
 bool Sushi::read_config(const char *fname, bool ok_if_missing)
 {
-  std::ifstream ifs(fname);
-  if(!ifs.good()) {
-    if(ok_if_missing) return true;
-    // DZ: wrong use of perror
-    // std::perror("File does not exist");
-    std::perror(fname);
-    return false;
-  }
-  
-  while(!ifs.eof()) {
-    read_line(ifs);
-    // DZ: and store to history
-  }
-
-  if (ifs.bad()) {
-     // DZ: wrong use of perror
-       std::perror("File reading error");
-        return false;
-    }
-
-    ifs.close();
-    if (ifs.fail()) {
-    // DZ: wrong use of perror
-        std::perror("Error closing file");
-        return false;
+  // Try to open a config file
+  std::ifstream config_file(fname);
+  if (!config_file) {
+    if (!ok_if_missing) {
+      std::perror(fname);
+      return false;
     }
     return true;
+  }
 
+  // Read the config file
+  while(!config_file.eof()) {
+    std::string line = read_line(config_file);
+    store_to_history(line);
+  }
+  
+  return true; 
 }
 
 void Sushi::store_to_history(std::string line)
 {
-  // DZ: not `int` but `size_t` (unsigned comparizon)
-  int size = history.size();
-  if(line.empty()) return;
-  if(size >= Sushi::HISTORY_LENGTH) {
-    history.pop();
-    history.push(line); // DZ: This line should be after `if`
+  if (line.empty()) {
+    return;    
   }
-  else {
-    history.push(line); // DZ: This line should be after `if`
+
+  // Is the history buffer full?
+  while (history.size() >= HISTORY_LENGTH) {
+    history.pop_front();
   }
-  // DZ: `count` should not be a static variable
-  // my_sushi.count++
-  Sushi::count++;
+  
+  history.emplace_back(line);
 }
 
-
-void Sushi::show_history()
+void Sushi::show_history() const
 {
-  // DZ: You should have used dequeue, which is iterable
-  std::queue<std::string> temp = history;
-  // DZ: not `int` but `size_t` (unsigned comparizon)
-  for (int i = 0; i < history.size(); i++) {
-    // DZ: "Each string should be prefixed by the sequential number (starting at 1)"
-    std::cout << std::setw(5) << std::right << 
-      abs(Sushi::count - history.size() + i) << "  " << temp.front() << std::endl;
-    temp.pop();
+  int index = 1;
+  for (const auto &cmd: history) {
+    std::cout << std::setw(5) << index++ << "  " << cmd << std::endl;
   }
 }
 
