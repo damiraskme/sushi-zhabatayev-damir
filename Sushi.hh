@@ -1,17 +1,17 @@
 #pragma once
 #include <string> 
 #include <limits>
-#include <queue>
+#include <deque>
 #include <fstream>
 #include <filesystem>
 #include <iostream>
+#include <algorithm>
 
 class Sushi {
 private:
   static const size_t HISTORY_LENGTH = 10;
   static const size_t MAX_INPUT = 256;
-  static int count;
-  std::queue<std::string> history;
+  std::deque<std::string> history;
   bool exit_flag = false; // New attribute
 
 public:
