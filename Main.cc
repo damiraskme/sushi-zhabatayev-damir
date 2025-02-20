@@ -11,10 +11,19 @@ int main(int argc, char *argv[])
 {
   UNUSED(argc);
   UNUSED(argv);
+  // New function call
+  Sushi::prevent_interruption();
+  
   std::string line;
-  my_shell.set_exit_flag();
 
-  while(my_shell.get_exit_flag()) {
+  // DZ: Where is read_config?
+  
+  // DZ: Wrong; your shell never stops
+  // my_shell.set_exit_flag();
+
+  // DZ: Wrong
+  // while(my_shell.get_exit_flag()) {
+  while(!my_shell.get_exit_flag()) {
     std::cout << Sushi::DEFAULT_PROMPT;
     line = my_shell.read_line(std::cin);
     if(my_shell.parse_command(line) == 0 ) my_shell.store_to_history(line);  

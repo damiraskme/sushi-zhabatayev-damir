@@ -3,7 +3,12 @@
 std::string *Sushi::unquote_and_dup(const char* s)
 {
   std::string dup;
-  if (s == nullptr) std::perror(s);
+  // DZ: You MUST NOT continue if `s` is NULL!
+  if (s == nullptr) {
+    std::perror(s);
+    return new std::string();
+  }
+  
   for(const char* i = s; *i != '\0'; i++) {
     if(*i != '\\') dup += *i;
     else if(*i == '\\') {
@@ -15,7 +20,7 @@ std::string *Sushi::unquote_and_dup(const char* s)
         dup += '\b';
         break;
       case 'e':
-        dup += '\e';
+        dup += '\x1B'; // DZ: '\e' is non-standard
         break;
       case 'f':
         dup += '\f';
@@ -48,12 +53,15 @@ std::string *Sushi::unquote_and_dup(const char* s)
     }
     
   }
-  return new std::string(dup); // Must be changed
+  return new std::string(dup); 
 }
 
 void Sushi::re_parse(int i) {
-  if(i <= 0 || i > Sushi::HISTORY_LENGTH) {
-    std::cerr << "Error: " << "!" << i << ": event not found";
+  // DZ: What if the history buffer is not full yet? 
+  // if(i <= 0 || i > Sushi::HISTORY_LENGTH) {
+  if(i <= 0 || i > static_cast<int>(history.size())) {
+    // DZ: New line?
+    std::cerr << "Error: " << "!" << i << ": event not found" << std::endl;
   }
   std::string command = Sushi::history[i-1];
   

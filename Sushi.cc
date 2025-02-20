@@ -79,3 +79,37 @@ bool Sushi::get_exit_flag() const
 {
   return Sushi::exit_flag;
 }
+
+//---------------------------------------------------------
+// New methods
+int Sushi::spawn(Program *exe, bool bg)
+{
+  // Must be implemented
+  UNUSED(exe);
+  UNUSED(bg);
+
+  return EXIT_SUCCESS;
+}
+
+void Sushi::prevent_interruption() {
+  // Must be implemented
+}
+
+void Sushi::refuse_to_die(int signo) {
+  // Must be implemented
+  UNUSED(signo);
+}
+
+char* const* Program::vector2array() {
+  // Must be implemented
+  return nullptr; 
+}
+
+void Program::free_array(char *const argv[]) {
+  // Must be implemented
+  UNUSED(argv);
+}
+
+Program::~Program() {
+  // Do not implement now
+}
