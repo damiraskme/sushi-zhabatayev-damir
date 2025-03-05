@@ -9,6 +9,8 @@
 
 //--------------------------------------------------------------------
 #include <vector> // New include
+#include <signal.h>
+#include <wait.h>
 
 // New class
 // I/O redirections, as in "foobar < foo > bar"
@@ -34,18 +36,15 @@ private:
   Redirection redir;
   Program *pipe; // The previous program in the pipeline, if any; NULL otherwise
 
-  // Helper methods
-  // Converts the args to whatever `execvp` expects
-  char* const* vector2array();
-  // Frees the memory allocated by vector2array()
-  void free_array(char *const argv[]);
-
 public:
   Program(std::vector<std::string*> *args) : args(args) {};
   ~Program();
   void set_pipe(Program *pipe) { this->pipe = pipe; };
   void set_redir(Redirection &redir) { this->redir = redir; };
   std::string progname() { return *args->at(0); }
+  char* const* get_array();
+  void free_array(char *const argv[]);
+  char* const* vector2array();
 };
 
 // Old class(es)
@@ -55,7 +54,7 @@ private:
   static const size_t HISTORY_LENGTH = 10;
   static const size_t MAX_INPUT = 256;
   std::deque<std::string> history;
-  bool exit_flag = false; // New attribute
+  bool exit_flag = false;
 
 public:
   Sushi() : history() {};
@@ -73,6 +72,7 @@ public:
   static void prevent_interruption(); // New method
   static void refuse_to_die(int signo); // New method
   static const std::string DEFAULT_PROMPT;
+  static const std::string DEFAULT_CONFIG;
 };
 
 #define UNUSED(expr) do {(void)(expr);} while (0)

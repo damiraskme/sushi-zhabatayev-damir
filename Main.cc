@@ -4,6 +4,7 @@
 
 
 const std::string Sushi::DEFAULT_PROMPT = "sushi> ";
+const std::string Sushi::DEFAULT_CONFIG = "sushi.conf";
 
 Sushi my_shell;
 
@@ -11,21 +12,23 @@ int main(int argc, char *argv[])
 {
   UNUSED(argc);
   UNUSED(argv);
-  // New function call
+
   Sushi::prevent_interruption();
   
   std::string line;
 
-  // DZ: Where is read_config?
-  
-  // DZ: Wrong; your shell never stops
-  // my_shell.set_exit_flag();
+  const char *home_dir = std::getenv("HOME");
+  if (!home_dir) {
+    std::cerr << "Error: HOME environment variable not set." << std::endl;
+    return EXIT_FAILURE;
+  }
 
-  // DZ: Wrong
-  // while(my_shell.get_exit_flag()) {
+  my_shell.read_config(Sushi::DEFAULT_CONFIG.c_str(), true);
+  
   while(!my_shell.get_exit_flag()) {
     std::cout << Sushi::DEFAULT_PROMPT;
     line = my_shell.read_line(std::cin);
+    if(line.empty()) std::cin.clear();
     if(my_shell.parse_command(line) == 0 ) my_shell.store_to_history(line);  
   }
   

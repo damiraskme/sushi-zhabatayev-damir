@@ -84,30 +84,67 @@ bool Sushi::get_exit_flag() const
 // New methods
 int Sushi::spawn(Program *exe, bool bg)
 {
-  // Must be implemented
-  UNUSED(exe);
   UNUSED(bg);
+  pid_t child_pid = fork();
+  if(child_pid == -1) {
+    std::perror("fork");
+    return EXIT_FAILURE;
+  }
 
-  return EXIT_SUCCESS;
+  else if(child_pid == 0) {
+    char* const* arr = exe->vector2array();
+    int status = execvp(exe->progname().c_str(), arr);
+    if(status == -1) {
+      if(errno == ENOENT) {
+        std::cerr << "Error: Command '" << exe->progname() << "' not found." << std::endl;
+        exit(EXIT_FAILURE);
+      }
+      else {
+        std::perror("execvp");
+        exit(EXIT_FAILURE);
+      }
+    }
+    exe->free_array(arr);
+  }
+
+  else if(child_pid != 0 && child_pid != -1) {
+    pid_t status = waitpid(child_pid, nullptr, 0);
+    if (status == -1) {
+          std::perror("waitpd");
+          return EXIT_FAILURE;
+          }
+    return EXIT_SUCCESS;
+  }
 }
 
 void Sushi::prevent_interruption() {
-  // Must be implemented
+  struct sigaction sigintHandler;
+  sigintHandler.sa_handler = refuse_to_die;
+  sigemptyset(&sigintHandler.sa_mask);
+  sigintHandler.sa_flags = 0;
+
+  sigaction(SIGINT, &sigintHandler, NULL);
 }
 
 void Sushi::refuse_to_die(int signo) {
-  // Must be implemented
-  UNUSED(signo);
+  std::cout << "Type exit to exit the shell" << std::endl;
 }
 
 char* const* Program::vector2array() {
-  // Must be implemented
-  return nullptr; 
+  size_t size = args->size();
+  char** arr = new char*[size + 1]; 
+
+  for (size_t i = 0; i < size; i++) {
+    arr[i] = const_cast<char*>(args->at(i)->data());
+  }
+  arr[size] = nullptr;
+
+  return arr;
 }
 
+
 void Program::free_array(char *const argv[]) {
-  // Must be implemented
-  UNUSED(argv);
+  delete[] argv;
 }
 
 Program::~Program() {
