@@ -1,36 +1,43 @@
 #include <cstdlib>
-#include <iostream>
 #include "Sushi.hh"
 
-
+// Initialize the static constants
+Sushi my_shell; 
 const std::string Sushi::DEFAULT_PROMPT = "sushi> ";
 const std::string Sushi::DEFAULT_CONFIG = "sushi.conf";
 
-Sushi my_shell;
-
 int main(int argc, char *argv[])
 {
-  UNUSED(argc);
-  UNUSED(argv);
-
+  // Use argc and argv!
+  
+  // Move this into the constructor
+  //-------------------------------------------
   Sushi::prevent_interruption();
   
-  std::string line;
-
   const char *home_dir = std::getenv("HOME");
-  if (!home_dir) {
-    std::cerr << "Error: HOME environment variable not set." << std::endl;
-    return EXIT_FAILURE;
+  // OK if missing!
+  if (home_dir) {
+    std::string config_path = std::string(home_dir) + "/" + Sushi::DEFAULT_CONFIG;
+    my_shell.read_config(config_path.c_str(), true);
   }
+  //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-  my_shell.read_config(Sushi::DEFAULT_CONFIG.c_str(), true);
-  
+  // Move this into the main loop method
+  //-------------------------------------------
   while(!my_shell.get_exit_flag()) {
     std::cout << Sushi::DEFAULT_PROMPT;
-    line = my_shell.read_line(std::cin);
-    if(line.empty()) std::cin.clear();
-    if(my_shell.parse_command(line) == 0 ) my_shell.store_to_history(line);  
+    std::string command = Sushi::read_line(std::cin);
+    if(!Sushi::parse_command(command)) {
+      // Re-execute from history if needed
+      if(!my_shell.re_execute()) {
+	// Do not insert the bangs (!)
+	my_shell.store_to_history(command);
+      }
+    }
   }
+  //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  // my_shell.mainloop();
   
   return EXIT_SUCCESS;
 }
