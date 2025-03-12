@@ -44,10 +44,13 @@ bool Sushi::read_config(const char *fname, bool ok_if_missing)
     }
 
     ifs.close();
+    // DZ: Once the file is closed, its status is 'fail'
+    /*
     if (ifs.fail()) {
         std::perror("Error closing file");
         return false;
     }
+    */
     return true;
 
 }
@@ -95,6 +98,9 @@ int Sushi::spawn(Program *exe, bool bg)
     char* const* arr = exe->vector2array();
     int status = execvp(exe->progname().c_str(), arr);
     if(status == -1) {
+      // DZ: Use perror to report errors
+      std::perror(arr[0]);
+      /*
       if(errno == ENOENT) {
         std::cerr << "Error: Command '" << exe->progname() << "' not found." << std::endl;
         exit(EXIT_FAILURE);
@@ -102,7 +108,7 @@ int Sushi::spawn(Program *exe, bool bg)
       else {
         std::perror("execvp");
         exit(EXIT_FAILURE);
-      }
+	}*/
     }
     exe->free_array(arr);
   }
@@ -115,6 +121,9 @@ int Sushi::spawn(Program *exe, bool bg)
           }
     return EXIT_SUCCESS;
   }
+
+  // DZ: Must formally return something here
+    return EXIT_SUCCESS;
 }
 
 void Sushi::prevent_interruption() {
@@ -127,7 +136,12 @@ void Sushi::prevent_interruption() {
 }
 
 void Sushi::refuse_to_die(int signo) {
+  UNUSED(signo);
   std::cout << "Type exit to exit the shell" << std::endl;
+}
+
+void Sushi::mainloop() {
+  // Must be implemented
 }
 
 char* const* Program::vector2array() {
