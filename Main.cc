@@ -10,34 +10,17 @@ Sushi my_shell;
 
 int main(int argc, char *argv[])
 {
-  // Use argc and argv!
-  
-  // Move this into the constructor
-  //-------------------------------------------
-  Sushi::prevent_interruption();
-  
-  std::string line;
-
-  const char *home_dir = std::getenv("HOME");
-  if (!home_dir) {
-    std::cerr << "Error: HOME environment variable not set." << std::endl;
-    return EXIT_FAILURE;
+  if (!my_shell.read_config("sushi.conf", false)) {
+    exit(EXIT_FAILURE);
   }
-
-  my_shell.read_config(Sushi::DEFAULT_CONFIG.c_str(), true);
-  
-  //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-  // Move this into the main loop method
-  //-------------------------------------------
-  while(!my_shell.get_exit_flag()) {
-    std::cout << Sushi::DEFAULT_PROMPT;
-    line = my_shell.read_line(std::cin);
-    if(line.empty()) std::cin.clear();
-    if(my_shell.parse_command(line) == 0 ) my_shell.store_to_history(line);  
+  if(argc >= 1) {
+    for(int i = 1; i < argc; i++) {
+      if(!my_shell.read_config(argv[i], false)) {
+        exit(EXIT_FAILURE);
+      }
+    }
   }
-    //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
+  
   my_shell.mainloop();
 
   return EXIT_SUCCESS;

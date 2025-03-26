@@ -44,13 +44,6 @@ bool Sushi::read_config(const char *fname, bool ok_if_missing)
     }
 
     ifs.close();
-    // DZ: Once the file is closed, its status is 'fail'
-    /*
-    if (ifs.fail()) {
-        std::perror("Error closing file");
-        return false;
-    }
-    */
     return true;
 
 }
@@ -98,39 +91,38 @@ int Sushi::spawn(Program *exe, bool bg)
     char* const* arr = exe->vector2array();
     int status = execvp(exe->progname().c_str(), arr);
     if(status == -1) {
-      // DZ: Use perror to report errors
       std::perror(arr[0]);
-      /*
-      if(errno == ENOENT) {
-        std::cerr << "Error: Command '" << exe->progname() << "' not found." << std::endl;
-        exit(EXIT_FAILURE);
-      }
-      else {
-        std::perror("execvp");
-        exit(EXIT_FAILURE);
-	}*/
     }
     exe->free_array(arr);
   }
 
   else if(child_pid != 0 && child_pid != -1) {
-    pid_t status = waitpid(child_pid, nullptr, 0);
-    if (status == -1) {
+    pid_t status;
+    if(!bg) {
+      status = waitpid(child_pid, nullptr, 0);
+      if (status == -1) {
           std::perror("waitpd");
           return EXIT_FAILURE;
-          }
+        }
+      Sushi::putenv(new std::string("?"), new std::string(std::to_string(status)));
+      return EXIT_SUCCESS;
+    }
+    else if(bg){
+      status = 0;
+      Sushi::putenv(new std::string("?"), new std::string("0"));
+      return EXIT_SUCCESS;
+    }
     return EXIT_SUCCESS;
   }
 
-  // DZ: Must formally return something here
-    return EXIT_SUCCESS;
+  return EXIT_SUCCESS;
 }
 
 void Sushi::prevent_interruption() {
   struct sigaction sigintHandler;
   sigintHandler.sa_handler = refuse_to_die;
   sigemptyset(&sigintHandler.sa_mask);
-  sigintHandler.sa_flags = 0;
+  sigintHandler.sa_flags = SA_RESTART;
 
   sigaction(SIGINT, &sigintHandler, NULL);
 }
@@ -141,7 +133,25 @@ void Sushi::refuse_to_die(int signo) {
 }
 
 void Sushi::mainloop() {
-  // Must be implemented
+  prevent_interruption();
+  const char *home_dir = std::getenv("HOME");
+  if (!home_dir) {
+    std::cerr << "Error: HOME environment variable not set." << std::endl;
+    exit(0);
+  }
+
+  std::string line;
+  while(!get_exit_flag()) {
+    if(getenv("PS1")->empty()) {
+      std::cout << Sushi::DEFAULT_PROMPT;
+    }
+    else if(!getenv("PS1")->empty()){
+      std::cout << getenv("PS1")->c_str();
+    }
+    line = read_line(std::cin);
+    if(line.empty()) std::cin.clear();
+    if(parse_command(line) == 0 ) store_to_history(line);  
+  }
 }
 
 char* const* Program::vector2array() {
