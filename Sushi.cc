@@ -104,7 +104,8 @@ int Sushi::spawn(Program *exe, bool bg)
           std::perror("waitpd");
           return EXIT_FAILURE;
         }
-      Sushi::putenv(new std::string("?"), new std::string(std::to_string(status)));
+      Sushi::putenv(new std::string("?"), 
+        new std::string(std::to_string(WEXITSTATUS(status))));
       return EXIT_SUCCESS;
     }
     else if(bg){
