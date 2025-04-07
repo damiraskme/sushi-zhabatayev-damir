@@ -99,6 +99,7 @@ int Sushi::spawn(Program *exe, bool bg)
   else if(child_pid != 0 && child_pid != -1) {
     pid_t status;
     if(!bg) {
+      // DZ: This is wrong; must pass &status as the second parameter
       status = waitpid(child_pid, nullptr, 0);
       if (status == -1) {
           std::perror("waitpd");
@@ -108,7 +109,7 @@ int Sushi::spawn(Program *exe, bool bg)
         new std::string(std::to_string(WEXITSTATUS(status))));
       return EXIT_SUCCESS;
     }
-    else if(bg){
+    else/* if(bg)*/{
       status = 0;
       Sushi::putenv(new std::string("?"), new std::string("0"));
       return EXIT_SUCCESS;
@@ -146,7 +147,7 @@ void Sushi::mainloop() {
     if(getenv("PS1")->empty()) {
       std::cout << Sushi::DEFAULT_PROMPT;
     }
-    else if(!getenv("PS1")->empty()){
+    else /*if(!getenv("PS1")->empty())*/ { // DZ: No need to check the same condition twice
       std::cout << getenv("PS1")->c_str();
     }
     line = read_line(std::cin);
