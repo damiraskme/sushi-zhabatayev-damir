@@ -38,6 +38,7 @@ public:
   Program(std::vector<std::string*> *args) : args(args) {};
   ~Program();
   void set_pipe(Program *pipe) { this->pipe = pipe; };
+  Program* get_pipe() {return this-> pipe; };
   void set_redir(Redirection &redir) { this->redir = redir; };
   std::string progname() { return *args->at(0); }
   char* const* get_array();
@@ -53,6 +54,8 @@ private:
   static const size_t MAX_INPUT = 256;
   std::deque<std::string> history;
   bool exit_flag = false;
+  int spawn_recursive(Program* prog, std::vector<pid_t>& children);
+
 
 public:
   Sushi() : history() {};

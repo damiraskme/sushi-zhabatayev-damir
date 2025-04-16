@@ -13,11 +13,9 @@ int main(int argc, char *argv[])
   if (!my_shell.read_config("sushi.conf", false)) {
     exit(EXIT_FAILURE);
   }
-  if(argc >= 1) { // DZ: No need for this line
-    for(int i = 1; i < argc; i++) {
-      if(!my_shell.read_config(argv[i], false)) {
-        exit(EXIT_FAILURE);
-      }
+  for(int i = 1; i < argc; i++) {
+    if(!my_shell.read_config(argv[i], false)) {
+      exit(EXIT_FAILURE);
     }
   }
   

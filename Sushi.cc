@@ -38,7 +38,7 @@ bool Sushi::read_config(const char *fname, bool ok_if_missing)
     if(parse_command(line) == 0 ) store_to_history(line);
   }
 
-  if (ifs.bad()) {
+  if(ifs.bad()) {
        std::perror("File reading error");
         return false;
     }
@@ -61,7 +61,7 @@ void Sushi::store_to_history(std::string line)
 void Sushi::show_history()
 {
   int i = 1;
-  for (const auto &line : history) {
+  for(const auto &line : history) {
     std::cout << std::setw(5) << i++ << " " << line << std::endl;
   }
 }
@@ -78,45 +78,70 @@ bool Sushi::get_exit_flag() const
 
 //---------------------------------------------------------
 // New methods
-int Sushi::spawn(Program *exe, bool bg)
-{
-  UNUSED(bg);
-  pid_t child_pid = fork();
-  if(child_pid == -1) {
-    std::perror("fork");
-    return EXIT_FAILURE;
-  }
-
-  else if(child_pid == 0) {
-    char* const* arr = exe->vector2array();
-    int status = execvp(exe->progname().c_str(), arr);
-    if(status == -1) {
-      std::perror(arr[0]);
+int Sushi::spawn(Program *exe, bool bg) {
+  std::vector<Program*> pipeline;
+    for(Program* p = exe; p != nullptr; p = p->get_pipe()) {
+      pipeline.insert(pipeline.begin(), p);
     }
-    exe->free_array(arr);
-  }
 
-  else if(child_pid != 0 && child_pid != -1) {
-    pid_t status;
-    if(!bg) {
-      // DZ: This is wrong; must pass &status as the second parameter
-      status = waitpid(child_pid, nullptr, 0);
-      if (status == -1) {
-          std::perror("waitpd");
-          return EXIT_FAILURE;
+    size_t n = pipeline.size();
+    std::vector<int> pipe_fds((n - 1) * 2, -1);
+
+    for(size_t i = 0; i < n - 1; ++i) {
+      int fds[2];
+      if(pipe(fds) == -1) {
+        std::perror("pipe");
+        return EXIT_FAILURE;
+      }
+      pipe_fds[i * 2] = fds[0];
+      pipe_fds[i * 2 + 1] = fds[1];
+    }
+
+    std::vector<pid_t> child_pids;
+
+    for(size_t i = 0; i < n; ++i) {
+      pid_t pid = fork();
+      if(pid == -1) {
+        std::perror("fork");
+        return EXIT_FAILURE;
+      } else if(pid == 0) {
+        if(i > 0) {
+          dup2(pipe_fds[(i - 1) * 2], STDIN_FILENO);
         }
+        if(i < n - 1) {
+          dup2(pipe_fds[i * 2 + 1], STDOUT_FILENO);
+        }
+        for(int fd : pipe_fds) {
+          if(fd != -1) close(fd);
+        }
+        char* const* arr = pipeline[i]->vector2array();
+        execvp(pipeline[i]->progname().c_str(), arr);
+        std::perror(arr[0]);
+        pipeline[i]->free_array(arr);
+        exit(EXIT_FAILURE);
+      } 
+      else {
+        child_pids.push_back(pid);
+      }
+    }
+
+    for(int fd : pipe_fds) {
+      if(fd != -1) close(fd);
+    }
+
+    if(!bg) {
+      int status = 0;
+      for(pid_t pid : child_pids) {
+        if(waitpid(pid, &status, 0) == -1) {
+          std::perror("waitpid");
+        }
+      }
       Sushi::putenv(new std::string("?"), 
         new std::string(std::to_string(WEXITSTATUS(status))));
-      return EXIT_SUCCESS;
     }
-    else/* if(bg)*/{
-      status = 0;
+    else {
       Sushi::putenv(new std::string("?"), new std::string("0"));
-      return EXIT_SUCCESS;
     }
-    return EXIT_SUCCESS;
-  }
-
   return EXIT_SUCCESS;
 }
 
@@ -137,7 +162,7 @@ void Sushi::refuse_to_die(int signo) {
 void Sushi::mainloop() {
   prevent_interruption();
   const char *home_dir = std::getenv("HOME");
-  if (!home_dir) {
+  if(!home_dir) {
     std::cerr << "Error: HOME environment variable not set." << std::endl;
     exit(0);
   }
@@ -147,7 +172,7 @@ void Sushi::mainloop() {
     if(getenv("PS1")->empty()) {
       std::cout << Sushi::DEFAULT_PROMPT;
     }
-    else /*if(!getenv("PS1")->empty())*/ { // DZ: No need to check the same condition twice
+    else {
       std::cout << getenv("PS1")->c_str();
     }
     line = read_line(std::cin);
@@ -160,7 +185,7 @@ char* const* Program::vector2array() {
   size_t size = args->size();
   char** arr = new char*[size + 1]; 
 
-  for (size_t i = 0; i < size; i++) {
+  for(size_t i = 0; i < size; i++) {
     arr[i] = const_cast<char*>(args->at(i)->data());
   }
   arr[size] = nullptr;
