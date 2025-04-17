@@ -1,69 +1,64 @@
+#include <cstring>
+#include <cassert>
 #include "Sushi.hh"
 
 std::string *Sushi::unquote_and_dup(const char* s)
 {
-  std::string dup;
-  if (s == nullptr) {
-    std::perror(s);
-    return new std::string();
-  }
+  assert(s);
   
-  for(const char* i = s; *i != '\0'; i++) {
-    if(*i != '\\') dup += *i;
-    else if(*i == '\\') {
-      switch (*i+1) {
-      case 'a':
-        dup += '\a';
-        break;
-      case 'b':
-        dup += '\b';
-        break;
-      case 'e':
-        dup += '\x1B';
-        break;
-      case 'f':
-        dup += '\f';
-        break;
-      case 'n':
-        dup += '\n';
-        break;
-      case 'r':
-        dup += '\r';
-        break;
-      case 't':
-        dup += '\t';
-        break;
-      case 'v':
-        dup += '\v';
-        break;
-      case '\\':
-        dup += '\n';
-        break;
-      case '\'':
-        dup += '\'';
-        break;
-      case '\"':
-        dup += '\"';
-        break;
-      default:
-        dup += *i;
-        break;
+  std::string result;
+  result.reserve(std::strlen(s));
+  
+  while (*s) {
+    if (*s == '\\') {
+      ++s;
+      if (!*s) {
+        result += '\\';
+        return new std::string(std::move(result));
       }
+      
+      switch (*s) {
+      case 'a': result += '\a'; break;
+      case 'b': result += '\b'; break;
+      case 'e': result += '\x1B'; break;
+      case 'f': result += '\f'; break;
+      case 'n': result += '\n'; break;
+      case 'r': result += '\r'; break;
+      case 't': result += '\t'; break;
+      case 'v': result += '\v'; break;
+      case '\\': result += '\\'; break;
+      case '\'': result += '\''; break;
+      case '"': result += '"'; break;
+      default:
+	result += '\\';
+	result += *s;
+	break;
+      }
+      ++s;
+    } else {
+      result += *s++;
     }
-    
   }
-  return new std::string(dup); 
+  return new std::string(std::move(result)); 
+}
+
+bool Sushi::re_execute() {
+  if(!redo.empty()) {
+    if (!parse_command(redo)) {
+      store_to_history(redo);
+    }
+    redo = "";
+    return true;
+  }
+  return false;
 }
 
 void Sushi::re_parse(int i) {
-  if(i <= 0 || i > static_cast<int>(history.size())) {
-
-    std::cerr << "Error: " << "!" << i << ": event not found" << std::endl;
-  }
-  std::string command = Sushi::history[i-1];
-  
-  if(Sushi::parse_command(command) != 0) {
-    Sushi::store_to_history(command);
+  size_t index = static_cast<size_t>(i);
+  if (index == 0 || index > history.size()) {
+    std::cerr << "!" << index << ": event not found" << std::endl;
+  } else {
+    redo = history[index - 1];
   }
 }
 
@@ -71,23 +66,14 @@ void Sushi::re_parse(int i) {
 // Implement the function
 std::string *Sushi::getenv(const char* s) 
 {
-  const char* value = std::getenv(s);
-  if(value) {
-    return new std::string(value);
-  }
-  else {
-    return new std::string("");
-  }
+  const char *value = std::getenv(s);
+  return new std::string(value ? value : "");
 }
 
 // Implement the function
 void Sushi::putenv(const std::string* name, const std::string* value)
 {
-  if(!name || !value) return;
-
-  if(setenv(name->c_str(), value->c_str(), 1) != 0) {
-    std::perror("setenv");
-  } 
+  setenv(name->c_str(), value->c_str(), true);
   delete name;
   delete value;
 }
