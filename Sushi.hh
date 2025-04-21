@@ -18,6 +18,7 @@ private:
   std::string *redir_in, *redir_out1, *redir_out2;
   
 public:
+  void clear() { redir_out1 = redir_out2 = redir_in = nullptr; }
   void set_in(std::string *fname)   { redir_in = fname; }
   void set_out1(std::string *fname) { redir_out1 = fname; }
   void set_out2(std::string *fname) { redir_out2 = fname; }
@@ -40,6 +41,7 @@ public:
   void set_pipe(Program *pipe) { this->pipe = pipe; };
   Program* get_pipe() {return this-> pipe; };
   void set_redir(Redirection &redir) { this->redir = redir; };
+  void clear_redir() { redir.clear(); }
   std::string progname() { return *args->at(0); }
   char* const* get_array();
   void free_array(char *const argv[]);
@@ -70,7 +72,9 @@ public:
   void set_exit_flag(); 
   bool get_exit_flag() const;
   static int parse_command(const std::string command); 
-  void mainloop(); // New method
+  void mainloop(); 
+  void pwd(); // New method
+  void cd(std::string *new_dir); // New method
   int spawn(Program *exe, bool bg); 
   static void prevent_interruption(); 
   static void refuse_to_die(int signo); 
