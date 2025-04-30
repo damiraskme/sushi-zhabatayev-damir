@@ -104,12 +104,32 @@ int Sushi::spawn(Program *exe, bool bg) {
       if(pid == -1) {
         std::perror("fork");
         return EXIT_FAILURE;
-      } else if(pid == 0) {
+      }
+      else if(pid == 0) {
+        Redirection r = pipeline[i]->get_redir();
         if(i > 0) {
           dup2(pipe_fds[(i - 1) * 2], STDIN_FILENO);
         }
         if(i < n - 1) {
           dup2(pipe_fds[i * 2 + 1], STDOUT_FILENO);
+        }
+        if(r.get_in() != nullptr && i == 0) {
+          FILE *f = fopen(r.get_in()->c_str(), "r");
+          dup2(fileno(f), STDIN_FILENO);
+          fclose(f);
+        }
+        if(r.get_out1() != nullptr && r.get_out2() != nullptr) {
+          std::cerr << "Cant have both > and >>" << std::endl;
+        }
+        if(r.get_out1() != nullptr && i == n - 1) {
+          FILE *f = fopen(r.get_out1()->c_str(), "w");
+          dup2(fileno(f), STDOUT_FILENO);
+          fclose(f);
+        }
+        if(r.get_out2() != nullptr && i == n-1) {
+          FILE *f = fopen(r.get_out2()->c_str(), "a");
+          dup2(fileno(f), STDOUT_FILENO);
+          fclose(f);
         }
         for(int fd : pipe_fds) {
           if(fd != -1) close(fd);
@@ -184,12 +204,21 @@ void Sushi::mainloop() {
 // Two new methods to implement
 void Sushi::pwd()
 {
-  std::cerr << "pwd: not implemented yet" << std::endl;
+  char cwd[4096];
+  if(getcwd(cwd, sizeof(cwd)) != nullptr) {
+    std::cout << cwd << std::endl;
+  }
+  else {
+    perror("getcwd()");
+  }
 }
 
 void Sushi::cd(std::string *s)
 {
-  std::cerr << "cd(" << *s << "): not implemented yet" << std::endl;
+  if(chdir(s->c_str()) != 0) {
+    perror("chdir()");
+  }
+  delete s; 
 }
 
 char* const* Program::vector2array() {

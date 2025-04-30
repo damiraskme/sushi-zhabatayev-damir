@@ -9,6 +9,10 @@
 #include <vector> 
 #include <signal.h>
 #include <wait.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+// #include <limits.h>
 
 // New class
 // I/O redirections, as in "foobar < foo > bar"
@@ -22,9 +26,10 @@ public:
   void set_in(std::string *fname)   { redir_in = fname; }
   void set_out1(std::string *fname) { redir_out1 = fname; }
   void set_out2(std::string *fname) { redir_out2 = fname; }
-  void set_in(Redirection &redir)   {
-    redir_in = redir.redir_out1 ? redir.redir_out1 : redir.redir_out2;
-  }
+  void set_in(Redirection &redir) { redir_in = redir.redir_in; }
+  std::string* get_in() const { return redir_in; }
+  std::string* get_out1() const { return redir_out1; }
+  std::string* get_out2() const { return redir_out2; }
 };
 
 // New class
@@ -46,8 +51,18 @@ public:
   char* const* get_array();
   void free_array(char *const argv[]);
   char* const* vector2array();
+  Redirection get_redir() { return redir; }
 };
-
+class Pipe {
+  private:
+    Program *head, *tail;
+  public:
+    Pipe(Program *p) : head(p), tail(p) {};
+    Program *hd() { return head; }
+    Program *tl() { return tail; }
+    void tl(Program *p) { tail = p; }
+  };
+  
 // Old class(es)
 //--------------------------------------------------------------------
 class Sushi {
